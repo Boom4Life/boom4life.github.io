@@ -1,0 +1,4 @@
+func (d);
+    {
+    location.reload();
+}
