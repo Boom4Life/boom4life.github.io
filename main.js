@@ -3,10 +3,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const audioPlayer = document.getElementById('audio');
   const playlist = document.getElementById('playlist');
   const repeatButton = document.getElementById('repeat-button');
+
   
   let isRepeat = false;
   let songs = [];
 
+  // Function to scan and list audio files
   async function scanForAudioFiles() {
     try {
 
@@ -17,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       if (response.ok) {
         const files = await response.json();
+
         songs = files
           .filter(file => file.toLowerCase().endsWith('.mp3'))
           .map(file => ({
@@ -25,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }));
       } else {
         console.error('Server returned error:', response.status, await response.text());
+        // Fallback to known files if we can't fetch the directory
         songs = [
           { name: 'Lucky You (Feat. Joyner Lucas)', file: 'Lucky You (Feat. Joyner Lucas) [Official Audio] 4.mp3' }
         ];
@@ -42,7 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
         playlistElement.appendChild(errorMessage);
       }
       
-      // Fallback to known files
       songs = [
         { name: 'Lucky You (Feat. Joyner Lucas)', file: 'Lucky You (Feat. Joyner Lucas) [Official Audio] 4.mp3' }
       ];
@@ -50,7 +53,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Function to render the playlist
   function renderPlaylist() {
     playlist.innerHTML = '';
     songs.forEach(song => {
@@ -69,11 +71,11 @@ document.addEventListener('DOMContentLoaded', () => {
       playlist.appendChild(songElement);
     });
 
-
     if (songs.length > 0) {
       audioPlayer.src = songs[0].file;
     }
   }
+
 
   repeatButton.addEventListener('click', () => {
     isRepeat = !isRepeat;
@@ -81,8 +83,43 @@ document.addEventListener('DOMContentLoaded', () => {
     repeatButton.textContent = `Repeat: ${isRepeat ? 'On' : 'Off'}`;
   });
 
+  // Load the audio files and create the playlist
   scanForAudioFiles().then(songList => {
     songs = songList;
     renderPlaylist();
   });
 });
+function scanForAudioFiles() {
+  const knownFiles = [
+    'Lucky You (Feat. Joyner Lucas) [Official Audio] 4.mp3',
+    'Fall [Official Audio] 4.mp3'
+    // Add any other MP3 files you've uploaded to GitHub here
+  ];
+  songs = [];
+
+  const promises = knownFiles.map(fileName => {
+    return new Promise(resolve => {
+      fetch(fileName, { method: 'HEAD' })
+        .then(response => {
+          if (response.ok) {
+            songs.push({
+              name: fileName.replace('.mp3', '').replace(/\[\w+\s\w+\]\s\d+/, '').trim(),
+              file: fileName
+            });
+          }
+          resolve();
+        })
+        .catch(() => {
+          resolve(); // Resolve even if there is an error
+        });
+    });
+  });
+  Promise.all(promises).then(() => {
+    if (songs.length === 0) {
+      const playlistElement = document.getElementById('playlist');
+      playlistElement.innerHTML = '<div class="error-message">No audio files found. Please make sure MP3 files are uploaded to the repository.</div>';
+    } else {
+      renderPlaylist();
+    }
+  });
+}
